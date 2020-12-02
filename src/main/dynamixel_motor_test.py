@@ -8,5 +8,6 @@ motorDriver1.print_current_state()
 motorDriver2.print_current_state()
 
 time.sleep(1)
+
 motorDriver1.shutdown()
 motorDriver2.shutdown()
