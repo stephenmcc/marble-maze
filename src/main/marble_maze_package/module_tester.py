@@ -170,20 +170,19 @@ def go_to_setpoint():
     motorDriverX = MotorDriver.create_motor_x()
     motorDriverY = MotorDriver.create_motor_y()
 
+    motorDriverX.enable_torque()
+    motorDriverY.enable_torque()
+
+    motorDriverX.go_to_level()
+    motorDriverY.go_to_level()
+
     # first couple frames are bad
     for i in range(3):
         frame = capturer.getCroppedFrame()
         time.sleep(0.2)
 
     frame = capturer.getCroppedFrame()
-
-    motorDriverX.enable_torque()
-    motorDriverY.enable_torque()
-
     time.sleep(0.2)
-
-    motorDriverX.go_to_level()
-    motorDriverY.go_to_level()
 
     cv2.imshow('image', frame)
     cv2.setMouseCallback('image', WebcamCapturer.mouse_callback)
@@ -204,7 +203,10 @@ def go_to_setpoint():
             filtered_image, blob = detector.detectBlob0(frame)
 
         if (blob[0] != -1):
-            marbleStateManager.new_state_detected(blob[0], blob[1])
+            if (detectedMarbleLastTick):
+                marbleStateManager.new_state_detected(blob[0], blob[1])
+            else:
+                marbleStateManager.initialize(blob[0], blob[1])
             mark_detected_position(filtered_image, marbleStateManager.x, marbleStateManager.y)
             mark_goal_position(filtered_image, setpointX, setpointY)
             detectedMarbleLastTick = True
@@ -213,9 +215,20 @@ def go_to_setpoint():
 
         dx = setpointX - marbleStateManager.x
         dy = setpointY - marbleStateManager.y
+        vx = marbleStateManager.vx
+        vy = marbleStateManager.vy
 
-        motorDriverX.set_goal_relative_to_level(int(0.5 * dx))
-        motorDriverY.set_goal_relative_to_level(int(-0.5 * dy))
+        kp = 0.12
+        kd = 0.03
+
+        signX = 1.0
+        signY = -1.0
+
+        ux = signX * (kp * dx - kd * vx)
+        uy = signY * (kp * dy - kd * vy)
+
+        motorDriverX.set_goal_relative_to_level(int(ux))
+        motorDriverY.set_goal_relative_to_level(int(uy))
 
         print(str(marbleStateManager.x) + ', ' + str(marbleStateManager.y))
         cv2.imshow('frame', filtered_image)
