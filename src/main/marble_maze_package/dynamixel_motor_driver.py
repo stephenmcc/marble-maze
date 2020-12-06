@@ -38,6 +38,9 @@ DEVICENAME                  = 'COM3'            # Check which port is being used
 TORQUE_ENABLE               = 1                 # Value for enabling the torque
 TORQUE_DISABLE              = 0                 # Value for disabling the torque
 
+LEVEL_ID_10                 = 580
+LEVEL_ID_20                 = 702
+
 class MotorDriver:
     # Initialize PortHandler instance
     # Set the port path
@@ -49,8 +52,9 @@ class MotorDriver:
     # Get methods and members of Protocol1PacketHandler or Protocol2PacketHandler
     packetHandler = PacketHandler(PROTOCOL_VERSION)
 
-    def __init__(self, motor_id):
+    def __init__(self, motor_id, level_position):
         self.motor_id = motor_id
+        self.level_position = level_position
 
         # Open port
         if self.portHandler.openPort():
@@ -69,6 +73,12 @@ class MotorDriver:
             print("Press any key to terminate...")
             getch()
             quit()
+
+    def create_motor_x():
+        return MotorDriver(10, LEVEL_ID_10)
+
+    def create_motor_y():
+        return MotorDriver(20, LEVEL_ID_20)
 
     def print_current_state(self):
         cwAngleLimit, cwResult, cwAngleError = self.packetHandler.read2ByteTxRx(self.portHandler, self.motor_id, 6)
@@ -102,6 +112,11 @@ class MotorDriver:
         elif dxl_error != 0:
             print("%s" % self.packetHandler.getRxPacketError(dxl_error))
 
+    def go_to_level(self):
+        self.set_goal_position(self.level_position)
+
+    def set_goal_relative_to_level(self, delta_level):
+        self.set_goal_position(self.level_position + delta_level)
+
     def shutdown(self):
-        # Close port
         self.portHandler.closePort()

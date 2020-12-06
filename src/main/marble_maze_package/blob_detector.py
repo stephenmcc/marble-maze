@@ -1,7 +1,15 @@
 import cv2
 import numpy as np;
+from marble_state_manager import MarbleStateManager
+from math_utils import *
 
-class BlobDetector:
+# Coordinates are BGR
+RED_LOWER = (20,25,110)
+RED_UPPER = (55,60,150)
+BLUE_LOWER = (70, 25, 20)
+BLUE_UPPER = (230, 75, 50)
+
+class OpenCVBlobDetector:
     def __init__(self, params, lowerThreshold, upperThreshold):
         self.detector = cv2.SimpleBlobDetector_create(params)
         self.lowerThreshold = lowerThreshold
@@ -9,20 +17,14 @@ class BlobDetector:
 
     def createRedMarbleDetector():
         params = BlobDetector.get_marble_blob_detection_parameters()
-        redLower = (20,25,110)
-        redUpper = (55,60,150)
-        return BlobDetector(params, redLower, redUpper)
+        return OpenCVBlobDetector(params, RED_LOWER, RED_UPPER)
 
     def createBlueMarbleDetector():
         params = BlobDetector.get_marble_blob_detection_parameters()
-        blueLower = (55, 25, 20)
-        blueUpper = (230, 100, 50)
-        return BlobDetector(params, blueLower, blueUpper)
+        return OpenCVBlobDetector(params, BLUE_LOWER, BLUE_UPPER)
 
     def detectBlob(self, image):
         mask = cv2.inRange(image, self.lowerThreshold, self.upperThreshold)
-        mask = cv2.erode(mask, None, iterations=0)
-        mask = cv2.dilate(mask, None, iterations=0)
         keypoints = self.detector.detect(mask)
 
         image_with_keypoints = cv2.drawKeypoints(mask, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
@@ -33,16 +35,18 @@ class BlobDetector:
     def get_marble_blob_detection_parameters():
         params = cv2.SimpleBlobDetector_Params()
 
+        # params.minDistBetweenBlobs = 50;
+        #
         params.minThreshold = 100;
         params.maxThreshold = 200;
 
         # Filter by Area.
-        params.filterByArea = True
+        params.filterByArea = False
         params.minArea = -1
         params.maxArea = 1500
 
         # Filter by Circularity
-        params.filterByCircularity = True
+        params.filterByCircularity = False
         params.minCircularity = 0.01
 
         # Filter by Convexity
@@ -76,33 +80,43 @@ class BlobDetector:
         params.filterByInertia = False
         params.minInertiaRatio = 0.1
 
-def test_red_marble_image(index):
-    image = cv2.imread("..\\..\\resources\\RedMarble" + str(index) + ".jpg")
-    redMarbleDetector = BlobDetector.createRedMarbleDetector()
-    filtered_image, keypoints = redMarbleDetector.detectBlob(image)
+class SimpleBlobDetector:
+    def __init__(self, lowerThreshold, upperThreshold):
+        self.lowerThreshold = lowerThreshold
+        self.upperThreshold = upperThreshold
 
-    # showImageAndWait(image)
-    show_detection_results(filtered_image, keypoints)
+    def createBlueMarbleDetector():
+        return SimpleBlobDetector(BLUE_LOWER, BLUE_UPPER)
 
-def test_blue_marble_image(index):
-    image = cv2.imread("..\\..\\resources\\BlueMarble" + str(index) + ".jpg")
-    blueMarbleDetector = BlobDetector.createBlueMarbleDetector()
-    filtered_image, keypoints = blueMarbleDetector.detectBlob(image)
+    def detectBlob0(self, image):
+        return self.detectBlobInternal(image, 0, len(image[0]) - 1, 0, len(image) - 1)
 
-    # showImageAndWait(image)
-    show_detection_results(filtered_image, keypoints)
+    def detectBlob1(self, image, marbleStateManager):
+        maxSearchDistance = 70 # 35
+        minX = max(0, int(marbleStateManager.x - maxSearchDistance) - 1)
+        maxX = min(len(image[0]), int(marbleStateManager.x + maxSearchDistance))
+        minY = max(0, int(marbleStateManager.y - maxSearchDistance) - 1)
+        maxY = min(len(image), int(marbleStateManager.y + maxSearchDistance))
+        return self.detectBlobInternal(image, minX, maxX, minY, maxY)
 
-def show_detection_results(image, keypoints):
-    print("Number of keypoints: " + str(len(keypoints)))
-    for i in range(len(keypoints)):
-        print("Keypoint " + str(i))
-        print("x = " + str(keypoints[i].pt[0]))
-        print("y = " + str(keypoints[i].pt[1]))
-        print("size = " + str(keypoints[i].size))
+    def detectBlobInternal(self, image, minX, maxX, minY, maxY):
+        mask = cv2.inRange(image, self.lowerThreshold, self.upperThreshold)
+        filtered_image = cv2.bitwise_and(image, image, mask = mask)
 
-    cv2.imshow('FilteredImage', image)
-    cv2.waitKey(0)
+        numberOfPixels = 0
+        centroidX = 0
+        centroidY = 0
 
-if __name__ == "__main__":
-    # test_red_marble_image(1)
-    test_blue_marble_image(1)
+        for y in range(minY, maxY):
+            row = filtered_image[y]
+            for x in range(minX, maxX):
+                pixel = row[x]
+                if (int(pixel[0]) * int(pixel[1]) * int(pixel[2]) != 0):
+                    numberOfPixels += 1
+                    centroidX += x
+                    centroidY += y
+
+        if (numberOfPixels == 0):
+            return filtered_image, (-1, -1)
+        else:
+            return filtered_image, (centroidX / numberOfPixels, centroidY / numberOfPixels)
