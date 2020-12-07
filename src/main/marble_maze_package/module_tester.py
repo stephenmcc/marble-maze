@@ -1,16 +1,17 @@
 import os
 import cv2
 import time
+import numpy as np
 
 from blob_detector import OpenCVBlobDetector
 from blob_detector import SimpleBlobDetector
 from webcam_capturer import WebcamCapturer
 from dynamixel_motor_driver import MotorDriver
 from marble_state_manager import MarbleStateManager
+from realsense_capturer import RealsenseCapturer
+from math_utils import *
 
-def display_webcam():
-    capturer = WebcamCapturer()
-
+def display_camera(capturer):
     while(True):
         # Capture frame-by-frame
         frame = capturer.getCroppedFrame()
@@ -21,10 +22,7 @@ def display_webcam():
             break
     capturer.shutdown()
 
-def save_current_image(file_name, delay):
-    time.sleep(delay)
-    capturer = WebcamCapturer()
-
+def save_current_image(file_name, capturer):
     # for some reason the first few images are bad
     for i in range(3):
         frame = capturer.getCroppedFrame()
@@ -40,18 +38,14 @@ def save_current_image(file_name, delay):
 
     capturer.shutdown()
 
-def save_a_few_images(name_prefix, number_of_images):
-    capturer = WebcamCapturer()
-
+def save_a_few_images(capturer, name_prefix, number_of_images):
     # for some reason the first few images are bad
-    for i in range(3):
+    for i in range(40):
         frame = capturer.getCroppedFrame()
-        time.sleep(0.4)
 
     frames = []
     for i in range(number_of_images):
-        frames.append(capturer.getCroppedFrame())
-        time.sleep(0.2)
+        frames.append(np.copy(capturer.getCroppedFrame()))
 
     capturer.shutdown()
 
@@ -60,22 +54,23 @@ def save_a_few_images(name_prefix, number_of_images):
         filename = os.path.join(dirname, '..\\..\\..\\resources\\' + name_prefix + str(i) + '.png')
         cv2.imwrite(filename, frames[i])
 
-def test_saved_image(index):
-    image = cv2.imread("..\\..\\..\\resources\\Test" + str(index) + ".png")
+def test_saved_images(max_index):
+    marbleDetector = SimpleBlobDetector.createBlueMarbleDetectorRS()
+    for i in range(max_index):
+        image = cv2.imread("..\\..\\..\\resources\\TestGreenRS" + str(i) + ".png")
+        filtered_image, blob = marbleDetector.detectBlob0(image)
+        print(str(blob[0]) + ", " + str(blob[1]))
+        mark_detected_position(filtered_image, blob[0], blob[1])
+        cv2.imshow('image', filtered_image)
+        cv2.waitKey(0)
 
-    blueMarbleDetector = SimpleBlobDetector.createBlueMarbleDetector()
-
-    marbleStateManager = MarbleStateManager()
-    marbleStateManager.initialize(48, 294)
-
-    filtered_image, blob = blueMarbleDetector.detectBlob1(image, marbleStateManager)
-
+def test_specific_image(image_name):
+    marbleDetector = SimpleBlobDetector.createBlueMarbleDetectorRS()
+    image = cv2.imread("..\\..\\..\\resources\\" + image_name + ".png")
+    filtered_image, blob = marbleDetector.detectBlob0(image)
     print(str(blob[0]) + ", " + str(blob[1]))
-
     mark_detected_position(filtered_image, blob[0], blob[1])
     cv2.imshow('image', filtered_image)
-
-    cv2.setMouseCallback('image', WebcamCapturer.mouse_callback)
     cv2.waitKey(0)
 
 def mark_detected_position(image, blobX, blobY):
@@ -106,14 +101,13 @@ def display_simple_detection_results():
 
     capturer.shutdown()
 
-def track_marble():
-    capturer = WebcamCapturer()
-    detector = SimpleBlobDetector.createBlueMarbleDetector()
+def track_marble(capturer):
+    detector = SimpleBlobDetector.createBlueMarbleDetectorRS()
 
     # first couple frames are bad
-    for i in range(3):
+    for i in range(40):
         frame = capturer.getCroppedFrame()
-        time.sleep(0.2)
+        # time.sleep(0.2)
 
     frame = capturer.getCroppedFrame()
 
@@ -139,10 +133,11 @@ def track_marble():
             marbleStateManager.new_state_detected(blob[0], blob[1])
             mark_detected_position(filtered_image, marbleStateManager.x, marbleStateManager.y)
             detectedMarbleLastTick = True
+            print(str(marbleStateManager.x) + ', ' + str(marbleStateManager.y))
         else:
             detectedMarbleLastTick = False
+            print("No marble detected")
 
-        print(str(marbleStateManager.x) + ', ' + str(marbleStateManager.y))
         cv2.imshow('frame', filtered_image)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -161,12 +156,11 @@ def print_motor_states():
     motorDriverX.shutdown()
     motorDriverY.shutdown()
 
-def go_to_setpoint():
-    setpointX = 300
-    setpointY = 400
+def go_to_setpoint(capturer):
+    setpointX = 200
+    setpointY = 200
 
-    capturer = WebcamCapturer()
-    detector = SimpleBlobDetector.createBlueMarbleDetector()
+    detector = SimpleBlobDetector.createBlueMarbleDetectorRS()
     motorDriverX = MotorDriver.create_motor_x()
     motorDriverY = MotorDriver.create_motor_y()
 
@@ -218,19 +212,28 @@ def go_to_setpoint():
         vx = marbleStateManager.vx
         vy = marbleStateManager.vy
 
-        kp = 0.12
-        kd = 0.03
+        kp = 0.4
+        kd = 0.08
 
         signX = 1.0
         signY = -1.0
 
-        ux = signX * (kp * dx - kd * vx)
-        uy = signY * (kp * dy - kd * vy)
+        constant = 0
+        cx = 0
+        cy = 0
+
+        if (abs(dx) > 60):
+            cx = signum(dx) * constant
+        if (abs(dy) > 60):
+            cy = signum(dy) * constant
+
+        ux = signX * (kp * dx - kd * vx + cx)
+        uy = signY * (kp * dy - kd * vy + cy)
 
         motorDriverX.set_goal_relative_to_level(int(ux))
         motorDriverY.set_goal_relative_to_level(int(uy))
 
-        print(str(marbleStateManager.x) + ', ' + str(marbleStateManager.y))
+        print(str(marbleStateManager.vx) + ', ' + str(marbleStateManager.vy))
         cv2.imshow('frame', filtered_image)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -246,27 +249,33 @@ def go_to_setpoint():
 
 
 if __name__ == "__main__":
+    # capturer = WebcamCapturer()
+    capturer = RealsenseCapturer()
+
     # show unfiltered image
-    # display_webcam()
+    # display_camera(capturer)
 
     # write current webcam image to file
-    image_name = "Test6.png"
-    # save_current_image(image_name, 0.0)
+    image_name = "CurrentImage.png"
+    # save_current_image(image_name, capturer)
 
     # save N images
-    # save_a_few_images('Test', 20)
+    # save_a_few_images(capturer, 'TestBlueRS', 25)
 
     # run detector on saved image
-    # test_saved_image(6)
+    # test_saved_images(20)
+
+    # run detector on specific image
+    # test_specific_image("TestBlueRS9")
 
     # show live filtered image
     # display_simple_detection_results()
 
     # run full tracker
-    # track_marble()
+    # track_marble(capturer)
 
     # show motor min/max angle, etc.
     # print_motor_states()
 
     # static setpoint
-    go_to_setpoint()
+    go_to_setpoint(capturer)

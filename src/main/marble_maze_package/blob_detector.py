@@ -6,8 +6,14 @@ from math_utils import *
 # Coordinates are BGR
 RED_LOWER = (20,25,110)
 RED_UPPER = (55,60,150)
-BLUE_LOWER = (70, 25, 20)
-BLUE_UPPER = (230, 75, 50)
+
+BLUE_WC_LOWER = (70, 25, 20)
+BLUE_WC_UPPER = (230, 75, 50)
+BLUE_RS_LOWER = (110, 80, 0)
+BLUE_RS_UPPER = (230, 130, 80)
+
+GREEN_LOWER = (63, 95, 12)
+GREEN_UPPER = (115, 155, 113)
 
 class OpenCVBlobDetector:
     def __init__(self, params, lowerThreshold, upperThreshold):
@@ -21,7 +27,11 @@ class OpenCVBlobDetector:
 
     def createBlueMarbleDetector():
         params = BlobDetector.get_marble_blob_detection_parameters()
-        return OpenCVBlobDetector(params, BLUE_LOWER, BLUE_UPPER)
+        return OpenCVBlobDetector(params, BLUE_WC_LOWER, BLUE_WC_UPPER)
+
+    def createGreenMarbleDetector():
+        params = BlobDetector.get_marble_blob_detection_parameters()
+        return OpenCVBlobDetector(params, GREEN_LOWER, GREEN_UPPER)
 
     def detectBlob(self, image):
         mask = cv2.inRange(image, self.lowerThreshold, self.upperThreshold)
@@ -86,13 +96,19 @@ class SimpleBlobDetector:
         self.upperThreshold = upperThreshold
 
     def createBlueMarbleDetector():
-        return SimpleBlobDetector(BLUE_LOWER, BLUE_UPPER)
+        return SimpleBlobDetector(BLUE_WC_LOWER, BLUE_WC_UPPER)
+
+    def createBlueMarbleDetectorRS():
+        return SimpleBlobDetector(BLUE_RS_LOWER, BLUE_RS_UPPER)
+
+    def createGreenMarbleDetector():
+        return SimpleBlobDetector(GREEN_LOWER, GREEN_UPPER)
 
     def detectBlob0(self, image):
         return self.detectBlobInternal(image, 0, len(image[0]) - 1, 0, len(image) - 1)
 
     def detectBlob1(self, image, marbleStateManager):
-        maxSearchDistance = 70 # 35
+        maxSearchDistance = 30 # 35
         minX = max(0, int(marbleStateManager.x - maxSearchDistance) - 1)
         maxX = min(len(image[0]), int(marbleStateManager.x + maxSearchDistance))
         minY = max(0, int(marbleStateManager.y - maxSearchDistance) - 1)
