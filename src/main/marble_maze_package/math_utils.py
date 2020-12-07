@@ -19,6 +19,14 @@ def signum(val):
     else:
         return -1.0
 
+def clamp(val, min_max):
+    if (val > min_max):
+        return min_max
+    elif (val < -min_max):
+        return -min_max
+    else:
+        return val
+
 def test_alpha_filter():
     x0 = 1.0
     xt = (1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.5, 1.5, 1.5)

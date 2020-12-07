@@ -15,6 +15,7 @@ def display_camera(capturer):
     while(True):
         # Capture frame-by-frame
         frame = capturer.getCroppedFrame()
+        mark_goal_position(frame, 200, 200)
 
         # Display the resulting frame
         cv2.imshow('frame', frame)
@@ -212,28 +213,26 @@ def go_to_setpoint(capturer):
         vx = marbleStateManager.vx
         vy = marbleStateManager.vy
 
-        kp = 0.4
-        kd = 0.08
+        kp = 0.7
+        kd = 0.5
 
         signX = 1.0
         signY = -1.0
 
-        constant = 0
-        cx = 0
-        cy = 0
+        ux = signX * (kp * dx - kd * vx)
+        uy = signY * (kp * dy - kd * vy)
 
-        if (abs(dx) > 60):
-            cx = signum(dx) * constant
-        if (abs(dy) > 60):
-            cy = signum(dy) * constant
+        if (abs(vx) < 10 and abs(vy) < 10 and abs(dx) > 20 and abs(dy) > 20):
+            ux = ux + signX * signum(dx) * 20
+            uy = uy + signY * signum(dy) * 20
 
-        ux = signX * (kp * dx - kd * vx + cx)
-        uy = signY * (kp * dy - kd * vy + cy)
+        ux = clamp(ux, 70)
+        uy = clamp(uy, 70)
 
         motorDriverX.set_goal_relative_to_level(int(ux))
         motorDriverY.set_goal_relative_to_level(int(uy))
 
-        print(str(marbleStateManager.vx) + ', ' + str(marbleStateManager.vy))
+        print(str(dx) + ', ' + str(dy) + ', ' + str(marbleStateManager.vx) + ', ' + str(marbleStateManager.vy))
         cv2.imshow('frame', filtered_image)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break

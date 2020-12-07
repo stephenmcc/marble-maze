@@ -4,7 +4,10 @@ from math_utils import *
 class MarbleStateManager:
 
     # What percentage of new state to use
-    alpha_position = 0.65
+    alpha_position = 0.6
+
+    # use velocity to predict next position
+    velocity_multiplier = 0.6
 
     def __init__(self):
         self.has_initialized = False
@@ -19,15 +22,21 @@ class MarbleStateManager:
 
     def new_state_detected(self, x, y):
         t = time.time()
-        newX = alpha_filter(self.alpha_position, self.x, x)
-        newY = alpha_filter(self.alpha_position, self.y, y)
+        predictedX = self.x
+        predictedY = self.y
         if (self.last_timestamp > 0.0):
             dt = t - self.last_timestamp
+            predictedX = predictedX + self.velocity_multiplier * dt * self.vx
+            predictedY = predictedY + self.velocity_multiplier * dt * self.vy
+
+        newX = alpha_filter(self.alpha_position, predictedX, x)
+        newY = alpha_filter(self.alpha_position, predictedY, y)
+        if (self.last_timestamp > 0.0):
             self.vx = (newX - self.x) / dt
             self.vy = (newY - self.y) / dt
-        self.last_timestamp = t
         self.x = newX
         self.y = newY
+        self.last_timestamp = t
 
     def get_position():
         return (self.x, self.y)
