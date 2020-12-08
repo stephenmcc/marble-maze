@@ -277,4 +277,4 @@ if __name__ == "__main__":
     # print_motor_states()
 
     # static setpoint
-    go_to_setpoint(capturer)
+    # go_to_setpoint(capturer)
