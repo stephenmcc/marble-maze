@@ -1,6 +1,8 @@
 import os
 import time
 
+from math_utils import *
+
 if os.name == 'nt':
     import msvcrt
     def getch():
@@ -26,6 +28,8 @@ from dynamixel_sdk import *                    # Uses Dynamixel SDK library
 ADDR_MX_TORQUE_ENABLE      = 24               # Control table address is different in Dynamixel model
 ADDR_MX_GOAL_POSITION      = 30
 ADDR_MX_PRESENT_POSITION   = 36
+ADDR_MX_CW_LIMIT           = 6
+ADDR_MX_CCW_LIMIT          = 8
 
 # Protocol version
 PROTOCOL_VERSION            = 1.0               # See which protocol version is used in the Dynamixel
@@ -38,8 +42,10 @@ DEVICENAME                  = 'COM3'            # Check which port is being used
 TORQUE_ENABLE               = 1                 # Value for enabling the torque
 TORQUE_DISABLE              = 0                 # Value for disabling the torque
 
-LEVEL_ID_10                 = 580
-LEVEL_ID_20                 = 750
+LEVEL_ID_10                 = 645
+LEVEL_ID_20                 = 670
+
+MAX_CONTROL_INPUT = 110
 
 class MotorDriver:
     # Initialize PortHandler instance
@@ -81,13 +87,13 @@ class MotorDriver:
         return MotorDriver(20, LEVEL_ID_20)
 
     def print_current_state(self):
-        cwAngleLimit, cwResult, cwAngleError = self.packetHandler.read2ByteTxRx(self.portHandler, self.motor_id, 6)
+        cwAngleLimit, cwResult, cwAngleError = self.packetHandler.read2ByteTxRx(self.portHandler, self.motor_id, ADDR_MX_CW_LIMIT)
         print("CW Angle Limit: " + str(cwAngleLimit))
 
-        ccwAngleLimit, ccwResult, ccwAngleError = self.packetHandler.read2ByteTxRx(self.portHandler, self.motor_id, 8)
+        ccwAngleLimit, ccwResult, ccwAngleError = self.packetHandler.read2ByteTxRx(self.portHandler, self.motor_id, ADDR_MX_CCW_LIMIT)
         print("CCW Angle Limit: " + str(ccwAngleLimit))
 
-        goalPosition, goalResult, goalError = self.packetHandler.read2ByteTxRx(self.portHandler, self.motor_id, 30)
+        goalPosition, goalResult, goalError = self.packetHandler.read2ByteTxRx(self.portHandler, self.motor_id, ADDR_MX_GOAL_POSITION)
         print("Goal position: " + str(goalPosition))
 
     def enable_torque(self):
@@ -116,7 +122,8 @@ class MotorDriver:
         self.set_goal_position(self.level_position)
 
     def set_goal_relative_to_level(self, delta_level):
-        self.set_goal_position(self.level_position + delta_level)
+        clamped_input = clamp(delta_level, MAX_CONTROL_INPUT)
+        self.set_goal_position(self.level_position + clamped_input)
 
     def shutdown(self):
         self.portHandler.closePort()

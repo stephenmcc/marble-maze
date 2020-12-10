@@ -7,7 +7,7 @@ class ListOfSetpoints:
     setpoints.append((200, 200))
     setpoints.append((80, 175))
     setpoints.append((150, 100))
-    setpoints.append((240, 260))
+    setpoints.append((40, 270))
 
     # current index of setpoint
     setpointIndex = 0

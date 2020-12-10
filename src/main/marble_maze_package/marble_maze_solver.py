@@ -47,13 +47,14 @@ class MarbleMazeSolver:
 
     start_time = 0.0
 
+    firstTick = True
+
     def __init__(self, setpointManager):
         self.capturer = RealsenseCapturer()
         self.detector = SimpleBlobDetector.createBlueMarbleDetectorRS()
         self.motorDriverX = MotorDriver.create_motor_x()
         self.motorDriverY = MotorDriver.create_motor_y()
         self.setpointManager = setpointManager
-        self.start_time = time.time()
 
     def initialize(self):
         print('initializing...')
@@ -71,6 +72,9 @@ class MarbleMazeSolver:
             return False
 
     def update_internal(self):
+        if (self.firstTick):
+            self.start_time = time.time()
+            self.firstTick = False
         setpoint = self.setpointManager.get_setpoint()
         self.controller.set_setpoint(setpoint)
         if (self.setpointManager.is_done()):
@@ -98,7 +102,7 @@ class MarbleMazeSolver:
         self.motorDriverY.set_goal_relative_to_level(int(u[1]))
 
         if (RECORD):
-            t = self.start_time - time.time()
+            t = time.time() - self.start_time
             x = self.marbleStateManager.x
             y = self.marbleStateManager.y
             positionLog.append((t, x, y, setpoint[0], setpoint[1]))
@@ -140,13 +144,13 @@ class MarbleMazeSolver:
             filename_prefix = datetime.datetime.now().strftime("%y%m%d%H%M%S")
 
             file = open("..\\..\\..\\..\\marble-maze-logs\\" + filename_prefix + "_Log.txt", "x")
-            file.write("x, y\n")
+            file.write("Time (seconds), X Position, Y Position, X Setpoint, Y Setpoint\n")
             for i in range(len(positionLog)):
                 pos = positionLog[i]
                 logString = ""
                 for j in range(len(pos)):
                     logString += str(pos[j])
-                    if (j != 0):
+                    if (j != len(pos) - 1):
                         logString += ","
                 logString += "\n"
                 file.write(logString)
