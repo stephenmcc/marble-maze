@@ -70,9 +70,13 @@ def test_specific_image(image_name):
     image = cv2.imread("..\\..\\..\\resources\\" + image_name + ".png")
     filtered_image, blob = marbleDetector.detectBlob0(image)
     print(str(blob[0]) + ", " + str(blob[1]))
-    mark_detected_position(filtered_image, blob[0], blob[1])
+    # mark_detected_position(filtered_image, blob[0], blob[1])
     cv2.imshow('image', filtered_image)
     cv2.waitKey(0)
+
+    dirname = os.path.dirname(__file__)
+    filename = os.path.join(dirname, '..\\..\\..\\resources\\' + 'FilteredImageToShow.png')
+    cv2.imwrite(filename, filtered_image)
 
 def mark_detected_position(image, blobX, blobY):
     width = 3
@@ -252,7 +256,7 @@ if __name__ == "__main__":
     capturer = RealsenseCapturer()
 
     # show unfiltered image
-    # display_camera(capturer)
+    display_camera(capturer)
 
     # write current webcam image to file
     image_name = "CurrentImage.png"
@@ -265,7 +269,7 @@ if __name__ == "__main__":
     # test_saved_images(20)
 
     # run detector on specific image
-    # test_specific_image("TestBlueRS9")
+    # test_specific_image("TestBlueRS18")
 
     # show live filtered image
     # display_simple_detection_results()

@@ -1,18 +1,18 @@
 from math_utils import *
 
 # PID gains
-KP = 0.7
+KP = 0.85
 KD = 0.5
-KI = 0.5
+KI = 0.6
 
 # How positive motor motion maps to image coordinates
 SIGN_X = 1.0
 SIGN_Y = -1.0
 
-MAX_INTEGRAL_ERROR = 75
+MAX_INTEGRAL_ERROR = 150
 
 # Exponential leak for integrated error, half-life of around 3 seconds at 30Hz
-INTEGRAL_LEAK_RATIO = 0.9925
+INTEGRAL_LEAK_RATIO = 0.991
 
 class SimplePIDController:
     # integrated error
@@ -22,17 +22,11 @@ class SimplePIDController:
     def __init__(self, marbleState):
         self.marbleState = marbleState
 
-    def set_setpoint(self, x, y):
-        self.setpointX = x
-        self.setpointY = y
-        self.initialized = True
-        self.integrated_error_x = 0.0
-        self.integrated_error_y = 0.0
+    def set_setpoint(self, setpoint):
+        self.setpointX = setpoint[0]
+        self.setpointY = setpoint[1]
 
     def do_control(self):
-        if (not self.initialized):
-            return (0, 0)
-
         dx = self.setpointX - self.marbleState.x
         dy = self.setpointY - self.marbleState.y
         vx = self.marbleState.vx

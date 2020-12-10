@@ -2,16 +2,18 @@ import os
 import cv2
 import time
 import numpy as np
+import datetime
 
 from blob_detector import SimpleBlobDetector
 from dynamixel_motor_driver import MotorDriver
 from marble_state_manager import MarbleStateManager
 from realsense_capturer import RealsenseCapturer
 from simple_pid_controller import SimplePIDController
+from list_of_setpoints import ListOfSetpoints
 from math_utils import *
 
-setpointX = 200
-setpointY = 200
+RECORD = True
+positionLog = []
 
 def mouse_callback(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDBLCLK:
@@ -43,17 +45,22 @@ class MarbleMazeSolver:
     mouse_click_x = -1
     mouse_click_y = -1
 
-    def __init__(self):
+    start_time = 0.0
+
+    def __init__(self, setpointManager):
         self.capturer = RealsenseCapturer()
         self.detector = SimpleBlobDetector.createBlueMarbleDetectorRS()
         self.motorDriverX = MotorDriver.create_motor_x()
         self.motorDriverY = MotorDriver.create_motor_y()
+        self.setpointManager = setpointManager
+        self.start_time = time.time()
 
     def initialize(self):
         print('initializing...')
         self.enable_and_level()
         self.wait_for_user_to_specify_ball_position()
-        self.controller.set_setpoint(setpointX, setpointY)
+        self.setpointManager.on_start()
+        self.controller.set_setpoint(self.setpointManager.get_setpoint())
         print('initialize complete')
 
     def update(self):
@@ -64,6 +71,11 @@ class MarbleMazeSolver:
             return False
 
     def update_internal(self):
+        setpoint = self.setpointManager.get_setpoint()
+        self.controller.set_setpoint(setpoint)
+        if (self.setpointManager.is_done()):
+            return False
+
         frame = self.capturer.getCroppedFrame()
         if (self.detected_marble_last_tick):
             filtered_image, blob = self.detector.detectBlob1(frame, self.marbleStateManager)
@@ -76,7 +88,7 @@ class MarbleMazeSolver:
             else:
                 self.marbleStateManager.initialize(blob[0], blob[1])
             mark_detected_position(filtered_image, self.marbleStateManager.x, self.marbleStateManager.y)
-            mark_goal_position(filtered_image, setpointX, setpointY)
+            mark_goal_position(filtered_image, setpoint[0], setpoint[1])
             self.detected_marble_last_tick = True
         else:
             self.detected_marble_last_tick = False
@@ -85,7 +97,12 @@ class MarbleMazeSolver:
         self.motorDriverX.set_goal_relative_to_level(int(u[0]))
         self.motorDriverY.set_goal_relative_to_level(int(u[1]))
 
-        print(str(self.marbleStateManager.x) + ', ' + str(self.marbleStateManager.y) + ', ' + str(self.marbleStateManager.vx) + ', ' + str(self.marbleStateManager.vy))
+        if (RECORD):
+            t = self.start_time - time.time()
+            x = self.marbleStateManager.x
+            y = self.marbleStateManager.y
+            positionLog.append((t, x, y, setpoint[0], setpoint[1]))
+
         cv2.imshow('frame', filtered_image)
         return not (cv2.waitKey(1) & 0xFF == ord('q'))
 
@@ -118,6 +135,23 @@ class MarbleMazeSolver:
         time.sleep(0.1)
         self.motorDriverX.shutdown()
         self.motorDriverY.shutdown()
+
+        if (RECORD):
+            filename_prefix = datetime.datetime.now().strftime("%y%m%d%H%M%S")
+
+            file = open("..\\..\\..\\..\\marble-maze-logs\\" + filename_prefix + "_Log.txt", "x")
+            file.write("x, y\n")
+            for i in range(len(positionLog)):
+                pos = positionLog[i]
+                logString = ""
+                for j in range(len(pos)):
+                    logString += str(pos[j])
+                    if (j != 0):
+                        logString += ","
+                logString += "\n"
+                file.write(logString)
+            file.close()
+
         print('Shutdown complete')
 
 def run_solver(solver):
@@ -128,5 +162,7 @@ def run_solver(solver):
     solver.shutdown()
 
 if __name__ == "__main__":
-    solver = MarbleMazeSolver()
+    setpointManager = ListOfSetpoints()
+
+    solver = MarbleMazeSolver(setpointManager)
     run_solver(solver)

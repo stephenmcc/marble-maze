@@ -39,7 +39,7 @@ TORQUE_ENABLE               = 1                 # Value for enabling the torque
 TORQUE_DISABLE              = 0                 # Value for disabling the torque
 
 LEVEL_ID_10                 = 580
-LEVEL_ID_20                 = 702
+LEVEL_ID_20                 = 750
 
 class MotorDriver:
     # Initialize PortHandler instance
