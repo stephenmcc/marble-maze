@@ -42,10 +42,10 @@ DEVICENAME                  = 'COM3'            # Check which port is being used
 TORQUE_ENABLE               = 1                 # Value for enabling the torque
 TORQUE_DISABLE              = 0                 # Value for disabling the torque
 
-LEVEL_ID_10                 = 645
+LEVEL_ID_10                 = 625
 LEVEL_ID_20                 = 670
 
-MAX_CONTROL_INPUT = 110
+MAX_CONTROL_INPUT = 115
 
 class MotorDriver:
     # Initialize PortHandler instance

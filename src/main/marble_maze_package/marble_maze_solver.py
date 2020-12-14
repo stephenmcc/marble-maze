@@ -10,10 +10,16 @@ from marble_state_manager import MarbleStateManager
 from realsense_capturer import RealsenseCapturer
 from simple_pid_controller import SimplePIDController
 from list_of_setpoints import ListOfSetpoints
+from static_setpoint import StaticSetpoint
+from user_guided_setpoint import UserGuidedSetpoint
 from math_utils import *
 
 RECORD = True
 positionLog = []
+
+PIXEL_TO_CM = 11.32
+
+SHOW_FILTERED_IMAGE = False
 
 def mouse_callback(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDBLCLK:
@@ -36,8 +42,6 @@ def mark_goal_position(image, blobX, blobY):
 
 class MarbleMazeSolver:
     detected_marble_last_tick = False
-    marbleStateManager = MarbleStateManager()
-    controller = SimplePIDController(marbleStateManager)
 
     # Has a double click happened
     has_clicked = False
@@ -49,7 +53,9 @@ class MarbleMazeSolver:
 
     firstTick = True
 
-    def __init__(self, setpointManager):
+    def __init__(self, marbleStateManager, setpointManager):
+        self.marbleStateManager = marbleStateManager
+        self.controller = SimplePIDController(marbleStateManager)
         self.capturer = RealsenseCapturer()
         self.detector = SimpleBlobDetector.createBlueMarbleDetectorRS()
         self.motorDriverX = MotorDriver.create_motor_x()
@@ -103,11 +109,17 @@ class MarbleMazeSolver:
 
         if (RECORD):
             t = time.time() - self.start_time
-            x = self.marbleStateManager.x
-            y = self.marbleStateManager.y
-            positionLog.append((t, x, y, setpoint[0], setpoint[1]))
+            x = self.marbleStateManager.x / PIXEL_TO_CM
+            y = self.marbleStateManager.y / PIXEL_TO_CM
+            sx = setpoint[0] / PIXEL_TO_CM
+            sy = setpoint[1] / PIXEL_TO_CM
+            positionLog.append((t, x, y, sx, sy))
 
-        cv2.imshow('frame', filtered_image)
+        if (SHOW_FILTERED_IMAGE):
+            cv2.imshow('frame', filtered_image)
+        else:
+            cv2.imshow('frame', frame)
+        cv2.setMouseCallback('frame', UserGuidedSetpoint.mouse_callback)
         return not (cv2.waitKey(1) & 0xFF == ord('q'))
 
     def enable_and_level(self):
@@ -166,7 +178,11 @@ def run_solver(solver):
     solver.shutdown()
 
 if __name__ == "__main__":
-    setpointManager = ListOfSetpoints()
+    marbleStateManager = MarbleStateManager()
 
-    solver = MarbleMazeSolver(setpointManager)
+    # setpointManager = StaticSetpoint(200, 200)
+    # setpointManager = ListOfSetpoints()
+    setpointManager = UserGuidedSetpoint(marbleStateManager)
+
+    solver = MarbleMazeSolver(marbleStateManager, setpointManager)
     run_solver(solver)

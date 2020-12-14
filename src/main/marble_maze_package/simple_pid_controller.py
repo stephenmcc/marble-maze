@@ -1,15 +1,17 @@
 from math_utils import *
 
 # PID gains
-KP = 0.85
-KD = 0.5
+KP = 0.65
+KD = 0.4
 KI = 2.0
 
 # How positive motor motion maps to image coordinates
 SIGN_X = 1.0
 SIGN_Y = -1.0
 
-MAX_INTEGRAL_ERROR = 120
+MAX_PROPORTIONAL_EFFORT = 85
+MAX_DERIVATIVE_EFFORT = 60
+MAX_INTEGRAL_EFFORT = 100
 
 # Exponential leak for integrated error, half-life of around 3 seconds at 30Hz
 INTEGRAL_LEAK_RATIO = 0.9925
@@ -43,18 +45,22 @@ class SimplePIDController:
         self.integrated_error_x += self.marbleState.get_dt() * dx
         self.integrated_error_y += self.marbleState.get_dt() * dy
 
-        self.integrated_error_x = clamp(self.integrated_error_x, MAX_INTEGRAL_ERROR)
-        self.integrated_error_y = clamp(self.integrated_error_y, MAX_INTEGRAL_ERROR)
-
         if (signum(vx) == signum(self.integrated_error_x) and abs(vx) > VELOCITY_THRESHOLD_TO_CLEAR_INTEGRAL):
             self.integrated_error_x = 0.0
         if (signum(vy) == signum(self.integrated_error_y) and abs(vy) > VELOCITY_THRESHOLD_TO_CLEAR_INTEGRAL):
             self.integrated_error_y = 0.0
 
-        print(str(self.integrated_error_x) + ", " + str(self.integrated_error_y))
+        prop_effort_x = clamp(KP * dx, MAX_PROPORTIONAL_EFFORT)
+        prop_effort_y = clamp(KP * dy, MAX_PROPORTIONAL_EFFORT)
 
-        ux = SIGN_X * (KP * dx - KD * vx + KI * self.integrated_error_x)
-        uy = SIGN_Y * (KP * dy - KD * vy + KI * self.integrated_error_y)
+        deriv_effort_x = clamp(-KD * vx, MAX_PROPORTIONAL_EFFORT)
+        deriv_effort_y = clamp(-KD * vy, MAX_PROPORTIONAL_EFFORT)
+
+        int_effort_x = clamp(KI * self.integrated_error_x, MAX_PROPORTIONAL_EFFORT)
+        int_effort_y = clamp(KI * self.integrated_error_y, MAX_PROPORTIONAL_EFFORT)
+
+        ux = SIGN_X * (prop_effort_x + deriv_effort_x + int_effort_x)
+        uy = SIGN_Y * (prop_effort_y + deriv_effort_y + int_effort_y)
 
         dux = ux - self.prev_ux
         duy = uy - self.prev_uy

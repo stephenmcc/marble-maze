@@ -4,10 +4,9 @@ class ListOfSetpoints:
 
     # hard-coded setpoints to go to
     setpoints = []
-    setpoints.append((200, 200))
-    setpoints.append((80, 175))
-    setpoints.append((150, 100))
-    setpoints.append((40, 270))
+    setpoints.append((240, 200))
+    setpoints.append((40, 150))
+    setpoints.append((220, 50))
 
     # current index of setpoint
     setpointIndex = 0
