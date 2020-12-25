@@ -3,9 +3,7 @@ import cv2
 import time
 import numpy as np
 
-from blob_detector import OpenCVBlobDetector
 from blob_detector import SimpleBlobDetector
-from webcam_capturer import WebcamCapturer
 from dynamixel_motor_driver import MotorDriver
 from marble_state_manager import MarbleStateManager
 from realsense_capturer import RealsenseCapturer
@@ -15,7 +13,6 @@ def display_camera(capturer):
     while(True):
         # Capture frame-by-frame
         frame = capturer.getCroppedFrame()
-        mark_goal_position(frame, 200, 200)
 
         # Display the resulting frame
         cv2.imshow('frame', frame)
@@ -55,28 +52,20 @@ def save_a_few_images(capturer, name_prefix, number_of_images):
         filename = os.path.join(dirname, '..\\..\\..\\resources\\' + name_prefix + str(i) + '.png')
         cv2.imwrite(filename, frames[i])
 
-def test_saved_images(max_index):
-    marbleDetector = SimpleBlobDetector.createBlueMarbleDetectorRS()
+def test_saved_images(detector, max_index):
     for i in range(max_index):
         image = cv2.imread("..\\..\\..\\resources\\TestGreenRS" + str(i) + ".png")
-        filtered_image, blob = marbleDetector.detectBlob0(image)
+        filtered_image, blob = detector.detectBlob0(image)
         print(str(blob[0]) + ", " + str(blob[1]))
         mark_detected_position(filtered_image, blob[0], blob[1])
         cv2.imshow('image', filtered_image)
         cv2.waitKey(0)
 
-def test_specific_image(image_name):
-    marbleDetector = SimpleBlobDetector.createBlueMarbleDetectorRS()
+def test_specific_image(detector, image_name):
     image = cv2.imread("..\\..\\..\\resources\\" + image_name + ".png")
-    filtered_image, blob = marbleDetector.detectBlob0(image)
-    print(str(blob[0]) + ", " + str(blob[1]))
-    # mark_detected_position(filtered_image, blob[0], blob[1])
+    filtered_image, blob = detector.detectBlob0(image)
     cv2.imshow('image', filtered_image)
     cv2.waitKey(0)
-
-    dirname = os.path.dirname(__file__)
-    filename = os.path.join(dirname, '..\\..\\..\\resources\\' + 'FilteredImageToShow.png')
-    cv2.imwrite(filename, filtered_image)
 
 def mark_detected_position(image, blobX, blobY):
     width = 3
@@ -91,7 +80,7 @@ def mark_goal_position(image, blobX, blobY):
             image[int(blobY) + j, int(blobX) + i] = (50, 180, 40)
 
 def display_simple_detection_results():
-    capturer = WebcamCapturer()
+    capturer = RealsenseCapturer()
     detector = SimpleBlobDetector.createBlueMarbleDetector()
 
     while(True):
@@ -255,21 +244,24 @@ if __name__ == "__main__":
     # capturer = WebcamCapturer()
     capturer = RealsenseCapturer()
 
+    # detector = SimpleBlobDetector.createBlueMarbleDetector()
+    detector = SimpleBlobDetector.createObstacleDetector()
+
     # show unfiltered image
-    display_camera(capturer)
+    # display_camera(capturer)
 
     # write current webcam image to file
-    image_name = "CurrentImage.png"
+    image_name = "MazeParts2.png"
     # save_current_image(image_name, capturer)
 
     # save N images
     # save_a_few_images(capturer, 'TestBlueRS', 25)
 
     # run detector on saved image
-    # test_saved_images(20)
+    # test_saved_images(detector, 20)
 
     # run detector on specific image
-    # test_specific_image("TestBlueRS18")
+    test_specific_image(detector, "MazeParts2")
 
     # show live filtered image
     # display_simple_detection_results()

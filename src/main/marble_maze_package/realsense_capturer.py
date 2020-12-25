@@ -11,6 +11,8 @@ MAX_X = 578
 MIN_Y = 50
 MAX_Y = 389
 
+FRAME_RATE = 30
+
 class RealsenseCapturer:
     # Has a double click happened
     has_clicked = False
@@ -20,7 +22,7 @@ class RealsenseCapturer:
 
     def __init__(self):
         config = rs.config()
-        config.enable_stream(rs.stream.color, IMG_WIDTH, IMG_HEIGHT, rs.format.bgr8, 30)
+        config.enable_stream(rs.stream.color, IMG_WIDTH, IMG_HEIGHT, rs.format.bgr8, FRAME_RATE)
         self.pipeline = rs.pipeline()
         self.pipeline.start(config)
 
