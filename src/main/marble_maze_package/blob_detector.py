@@ -24,6 +24,11 @@ class SimpleBlobDetector:
     def createObstacleDetector():
         return SimpleBlobDetector(WALL_LOWER, WALL_UPPER)
 
+    def applyFilter(self, image):
+        mask = cv2.inRange(image, self.lowerThreshold, self.upperThreshold)
+        filtered_image = cv2.bitwise_and(image, image, mask = mask)
+        return filtered_image
+
     def detectBlob0(self, image):
         return self.detectBlobInternal(image, 0, len(image[0]) - 1, 0, len(image) - 1)
 
@@ -47,7 +52,7 @@ class SimpleBlobDetector:
             row = filtered_image[y]
             for x in range(minX, maxX):
                 pixel = row[x]
-                if (int(pixel[0]) * int(pixel[1]) * int(pixel[2]) != 0):
+                if (int(pixel[0]) + int(pixel[1]) + int(pixel[2]) != 0):
                     numberOfPixels += 1
                     centroidX += x
                     centroidY += y

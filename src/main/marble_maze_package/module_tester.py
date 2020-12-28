@@ -8,6 +8,7 @@ from dynamixel_motor_driver import MotorDriver
 from marble_state_manager import MarbleStateManager
 from realsense_capturer import RealsenseCapturer
 from math_utils import *
+from path_planner import PathPlanner
 
 def display_camera(capturer):
     while(True):
@@ -57,7 +58,7 @@ def test_saved_images(detector, max_index):
         image = cv2.imread("..\\..\\..\\resources\\TestGreenRS" + str(i) + ".png")
         filtered_image, blob = detector.detectBlob0(image)
         print(str(blob[0]) + ", " + str(blob[1]))
-        mark_detected_position(filtered_image, blob[0], blob[1])
+        mark_red(filtered_image, blob[0], blob[1])
         cv2.imshow('image', filtered_image)
         cv2.waitKey(0)
 
@@ -67,13 +68,13 @@ def test_specific_image(detector, image_name):
     cv2.imshow('image', filtered_image)
     cv2.waitKey(0)
 
-def mark_detected_position(image, blobX, blobY):
+def mark_red(image, blobX, blobY):
     width = 3
     for i in range(-width, width+1):
         for j in range(-width, width+1):
             image[int(blobY) + j, int(blobX) + i] = (50, 50, 180)
 
-def mark_goal_position(image, blobX, blobY):
+def mark_green(image, blobX, blobY):
     width = 3
     for i in range(-width, width+1):
         for j in range(-width, width+1):
@@ -87,7 +88,7 @@ def display_simple_detection_results():
         # Capture frame-by-frame
         frame = capturer.getCroppedFrame()
         filtered_image, blob = detector.detectBlob0(frame)
-        mark_detected_position(filtered_image, blob[0], blob[1])
+        mark_red(filtered_image, blob[0], blob[1])
 
         cv2.imshow('frame', filtered_image)
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -125,7 +126,7 @@ def track_marble(capturer):
 
         if (blob[0] != -1):
             marbleStateManager.new_state_detected(blob[0], blob[1])
-            mark_detected_position(filtered_image, marbleStateManager.x, marbleStateManager.y)
+            mark_red(filtered_image, marbleStateManager.x, marbleStateManager.y)
             detectedMarbleLastTick = True
             print(str(marbleStateManager.x) + ', ' + str(marbleStateManager.y))
         else:
@@ -195,8 +196,8 @@ def go_to_setpoint(capturer):
                 marbleStateManager.new_state_detected(blob[0], blob[1])
             else:
                 marbleStateManager.initialize(blob[0], blob[1])
-            mark_detected_position(filtered_image, marbleStateManager.x, marbleStateManager.y)
-            mark_goal_position(filtered_image, setpointX, setpointY)
+            mark_red(filtered_image, marbleStateManager.x, marbleStateManager.y)
+            mark_green(filtered_image, setpointX, setpointY)
             detectedMarbleLastTick = True
         else:
             detectedMarbleLastTick = False
@@ -239,10 +240,29 @@ def go_to_setpoint(capturer):
     motorDriverY.shutdown()
     capturer.shutdown()
 
+def planPath(detector, image_name):
+    image = cv2.imread("..\\..\\..\\resources\\" + image_name + ".png")
+    filtered_image, blob = detector.detectBlob0(image)
+
+    planner = PathPlanner()
+
+    start = (20, 30)
+    goal = (300, 120)
+
+    path = planner.planPath(filtered_image, start, goal)
+
+    print("Got a path of length: " + str(len(path)))
+
+    for i in range(len(path)):
+        mark_red(filtered_image, path[i][0], path[i][1])
+
+    cv2.imshow('image', filtered_image)
+    cv2.waitKey(0)
+
 
 if __name__ == "__main__":
     # capturer = WebcamCapturer()
-    capturer = RealsenseCapturer()
+    # capturer = RealsenseCapturer()
 
     # detector = SimpleBlobDetector.createBlueMarbleDetector()
     detector = SimpleBlobDetector.createObstacleDetector()
@@ -261,7 +281,7 @@ if __name__ == "__main__":
     # test_saved_images(detector, 20)
 
     # run detector on specific image
-    test_specific_image(detector, "MazeParts2")
+    # test_specific_image(detector, "MazeParts")
 
     # show live filtered image
     # display_simple_detection_results()
@@ -274,3 +294,6 @@ if __name__ == "__main__":
 
     # static setpoint
     # go_to_setpoint(capturer)
+
+    # test A* planner
+    planPath(detector, "MazeParts")
