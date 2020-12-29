@@ -1,3 +1,5 @@
+from math import sqrt
+
 def min(x1, x2):
     if (x1 < x2):
         return x1
@@ -26,6 +28,9 @@ def clamp(val, min_max):
         return -min_max
     else:
         return val
+
+def distance2D(pointA, pointB):
+    return sqrt((pointA[0] - pointB[0])**2 + (pointA[1] - pointB[1])**2)
 
 def test_alpha_filter():
     x0 = 1.0

@@ -12,12 +12,15 @@ from simple_pid_controller import SimplePIDController
 from list_of_setpoints import ListOfSetpoints
 from static_setpoint import StaticSetpoint
 from user_guided_setpoint import UserGuidedSetpoint
+from path_based_setpoint import PathBasedSetpoint
 from math_utils import *
 
 RECORD = True
 positionLog = []
 
 PIXEL_TO_CM = 11.32
+
+GOAL = (30, 330)
 
 SHOW_FILTERED_IMAGE = False
 
@@ -65,8 +68,8 @@ class MarbleMazeSolver:
     def initialize(self):
         print('initializing...')
         self.enable_and_level()
-        self.wait_for_user_to_specify_ball_position()
-        self.setpointManager.on_start()
+        frame = self.wait_for_user_to_specify_ball_position()
+        self.setpointManager.on_start(GOAL, frame)
         self.controller.set_setpoint(self.setpointManager.get_setpoint())
         print('initialize complete')
 
@@ -142,6 +145,7 @@ class MarbleMazeSolver:
                 break
         self.marbleStateManager.initialize(float(MarbleMazeSolver.mouse_click_x), float(MarbleMazeSolver.mouse_click_y))
         self.detected_marble_last_tick = True
+        return frame
 
     def shutdown(self):
         print('Shutting down...')
@@ -182,7 +186,8 @@ if __name__ == "__main__":
 
     # setpointManager = StaticSetpoint(200, 200)
     # setpointManager = ListOfSetpoints()
-    setpointManager = UserGuidedSetpoint(marbleStateManager)
+    # setpointManager = UserGuidedSetpoint(marbleStateManager)
+    setpointManager = PathBasedSetpoint(marbleStateManager)
 
     solver = MarbleMazeSolver(marbleStateManager, setpointManager)
     run_solver(solver)

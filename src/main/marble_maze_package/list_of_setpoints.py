@@ -21,7 +21,7 @@ class ListOfSetpoints:
         self.setpointX = self.setpoints[0][0]
         self.setpointY = self.setpoints[0][1]
 
-    def on_start(self):
+    def on_start(self, goal, frame):
         self.start_time = time.time()
 
     def get_setpoint(self):

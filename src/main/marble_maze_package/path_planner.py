@@ -1,13 +1,9 @@
 from blob_detector import SimpleBlobDetector
-from math import sqrt
+from math_utils import *
 
 MAX_ITERATIONS = 2000
 BIN_SIZE = 12
 HEURISTIC_WEIGHT = 5.0
-
-# Euclidean heuristic cost
-def distance(nodeA, nodeB):
-    return sqrt((nodeA[0] - nodeB[0])**2 + (nodeA[1] - nodeB[1])**2)
 
 # Eight-connected graph. First four are one unit away, next are sqrt 2 units away
 def getNeighbors(coord):
@@ -30,10 +26,10 @@ def updateCosts(graph, coordinate):
         child_coord = node.getChildren()[i]
         child_node = graph[child_coord[1]][child_coord[0]]
 
-        cost = node.getCostFromStart() + distance(coordinate, child_coord) + child_node.getHeuristicCost()
+        cost = node.getCostFromStart() + distance2D(coordinate, child_coord) + child_node.getHeuristicCost()
         if (cost < child_node.getTotalCost()):
             child_node.setParentCoord(coordinate)
-            child_node.setCostFromStart(node.getCostFromStart() + distance(coordinate, child_coord))
+            child_node.setCostFromStart(node.getCostFromStart() + distance2D(coordinate, child_coord))
             updateCosts(graph, child_coord)
 
 def toBinCoord(imgCoord):
@@ -64,7 +60,7 @@ class PathPlanner:
 
         start = (toBinCoord(startImgCoords[0]), toBinCoord(startImgCoords[1]))
         goal = (toBinCoord(goalImgCoords[0]), toBinCoord(goalImgCoords[1]))
-        start_node = Node(HEURISTIC_WEIGHT * distance(start, goal))
+        start_node = Node(HEURISTIC_WEIGHT * distance2D(start, goal))
 
         print("Start: " + str(start[0]) + ", " + str(start[1]))
         print("Goal: " + str(goal[0]) + ", " + str(goal[1]))
@@ -104,9 +100,9 @@ class PathPlanner:
                     continue
 
                 node.addChild(neighbor)
-                edge_cost = distance(coord, neighbor)
+                edge_cost = distance2D(coord, neighbor)
 
-                heuristic_cost = HEURISTIC_WEIGHT * distance(neighbor, goal)
+                heuristic_cost = HEURISTIC_WEIGHT * distance2D(neighbor, goal)
                 neighbor_node = Node(heuristic_cost)
                 neighbor_node.setParentCoord(coord)
                 neighbor_node.setCostFromStart(edge_cost + node.getCostFromStart())

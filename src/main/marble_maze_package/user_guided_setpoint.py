@@ -10,7 +10,7 @@ class UserGuidedSetpoint:
         self.marbleStateManager = marbleStateManager
         self.has_clicked = False
 
-    def on_start(self):
+    def on_start(self, goal, frame):
         self.setpoint = self.marbleStateManager.get_position()
         return
 

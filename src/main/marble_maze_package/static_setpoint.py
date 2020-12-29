@@ -4,7 +4,7 @@ class StaticSetpoint:
     def __init__(self, x, y):
         self.setpoint = (x, y)
 
-    def on_start(self):
+    def on_start(self, goal, frame):
         pass
 
     def get_setpoint(self):
