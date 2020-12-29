@@ -57,7 +57,7 @@ class MarbleMazeSolver:
         self.marbleStateManager = marbleStateManager
         self.controller = SimplePIDController(marbleStateManager)
         self.capturer = RealsenseCapturer()
-        self.detector = SimpleBlobDetector.createBlueMarbleDetectorRS()
+        self.detector = SimpleBlobDetector.createMarbleDetector()
         self.motorDriverX = MotorDriver.create_motor_x()
         self.motorDriverY = MotorDriver.create_motor_y()
         self.setpointManager = setpointManager

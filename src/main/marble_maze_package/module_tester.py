@@ -8,7 +8,13 @@ from dynamixel_motor_driver import MotorDriver
 from marble_state_manager import MarbleStateManager
 from realsense_capturer import RealsenseCapturer
 from math_utils import *
-from path_planner import PathPlanner
+from path_planner import *
+
+# Colors for marking graphs
+RED = (50, 50, 180)
+YELLOW = (0, 175, 205)
+GREEN = (50, 180, 40)
+GREY = (50, 50, 50)
 
 def display_camera(capturer):
     while(True):
@@ -58,7 +64,7 @@ def test_saved_images(detector, max_index):
         image = cv2.imread("..\\..\\..\\resources\\TestGreenRS" + str(i) + ".png")
         filtered_image, blob = detector.detectBlob0(image)
         print(str(blob[0]) + ", " + str(blob[1]))
-        mark_red(filtered_image, blob[0], blob[1])
+        mark_cell(filtered_image, blob[0], blob[1], RED)
         cv2.imshow('image', filtered_image)
         cv2.waitKey(0)
 
@@ -68,17 +74,11 @@ def test_specific_image(detector, image_name):
     cv2.imshow('image', filtered_image)
     cv2.waitKey(0)
 
-def mark_red(image, blobX, blobY):
+def mark_cell(image, blobX, blobY, color):
     width = 3
     for i in range(-width, width+1):
         for j in range(-width, width+1):
-            image[int(blobY) + j, int(blobX) + i] = (50, 50, 180)
-
-def mark_green(image, blobX, blobY):
-    width = 3
-    for i in range(-width, width+1):
-        for j in range(-width, width+1):
-            image[int(blobY) + j, int(blobX) + i] = (50, 180, 40)
+            image[int(blobY) + j, int(blobX) + i] = color
 
 def display_simple_detection_results():
     capturer = RealsenseCapturer()
@@ -88,7 +88,7 @@ def display_simple_detection_results():
         # Capture frame-by-frame
         frame = capturer.getCroppedFrame()
         filtered_image, blob = detector.detectBlob0(frame)
-        mark_red(filtered_image, blob[0], blob[1])
+        mark_cell(filtered_image, blob[0], blob[1], RED)
 
         cv2.imshow('frame', filtered_image)
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -126,7 +126,7 @@ def track_marble(capturer):
 
         if (blob[0] != -1):
             marbleStateManager.new_state_detected(blob[0], blob[1])
-            mark_red(filtered_image, marbleStateManager.x, marbleStateManager.y)
+            mark_cell(filtered_image, marbleStateManager.x, marbleStateManager.y, RED)
             detectedMarbleLastTick = True
             print(str(marbleStateManager.x) + ', ' + str(marbleStateManager.y))
         else:
@@ -196,8 +196,8 @@ def go_to_setpoint(capturer):
                 marbleStateManager.new_state_detected(blob[0], blob[1])
             else:
                 marbleStateManager.initialize(blob[0], blob[1])
-            mark_red(filtered_image, marbleStateManager.x, marbleStateManager.y)
-            mark_green(filtered_image, setpointX, setpointY)
+            mark_cell(filtered_image, marbleStateManager.x, marbleStateManager.y, RED)
+            mark_cell(filtered_image, setpointX, setpointY, GREEN)
             detectedMarbleLastTick = True
         else:
             detectedMarbleLastTick = False
@@ -246,32 +246,44 @@ def planPath(detector, image_name):
 
     planner = PathPlanner()
 
-    start = (20, 30)
-    goal = (300, 120)
+    start = (330, 330)
+    goal = (30, 330)
 
-    path = planner.planPath(filtered_image, start, goal)
+    path, expanded = planner.planPath(filtered_image, start, goal)
 
     print("Got a path of length: " + str(len(path)))
 
+    # for i in range(len(expanded[0])):
+    #     for j in range(len(expanded)):
+    #         if (expanded[j][i]):
+    #             imgCoord = binCoordToImageSpace((i, j))
+    #             mark_cell(filtered_image, imgCoord[0], imgCoord[1], GREY)
+
     for i in range(len(path)):
-        mark_red(filtered_image, path[i][0], path[i][1])
+        mark_cell(filtered_image, path[i][0], path[i][1], YELLOW)
+
+    mark_cell(filtered_image, start[0], start[1], GREEN)
+    mark_cell(filtered_image, goal[0], goal[1], RED)
+
+    dirname = os.path.dirname(__file__)
+    filename = os.path.join(dirname, '..\\..\\..\\resources\\planner_result.png')
+    cv2.imwrite(filename, filtered_image)
 
     cv2.imshow('image', filtered_image)
     cv2.waitKey(0)
 
-
 if __name__ == "__main__":
     # capturer = WebcamCapturer()
-    # capturer = RealsenseCapturer()
+    capturer = RealsenseCapturer()
 
     # detector = SimpleBlobDetector.createBlueMarbleDetector()
     detector = SimpleBlobDetector.createObstacleDetector()
 
-    # show unfiltered image
+    # show cropped, unfiltered image
     # display_camera(capturer)
 
     # write current webcam image to file
-    image_name = "MazeParts2.png"
+    image_name = "MazeParts3.png"
     # save_current_image(image_name, capturer)
 
     # save N images
@@ -296,4 +308,4 @@ if __name__ == "__main__":
     # go_to_setpoint(capturer)
 
     # test A* planner
-    planPath(detector, "MazeParts")
+    planPath(detector, "MazeParts3")

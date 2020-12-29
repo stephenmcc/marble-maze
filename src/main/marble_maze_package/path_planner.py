@@ -1,9 +1,9 @@
 from blob_detector import SimpleBlobDetector
 from math import sqrt
 
-MAX_ITERATIONS = 6000
-BIN_SIZE = 8
-HEURISTIC_WEIGHT = 1.2
+MAX_ITERATIONS = 2000
+BIN_SIZE = 12
+HEURISTIC_WEIGHT = 5.0
 
 # Euclidean heuristic cost
 def distance(nodeA, nodeB):
@@ -69,9 +69,15 @@ class PathPlanner:
         print("Start: " + str(start[0]) + ", " + str(start[1]))
         print("Goal: " + str(goal[0]) + ", " + str(goal[1]))
 
+        numRejected = 0
+
         coord_queue = []
         coord_queue.append(start)
         graph[start[1]][start[0]] = start_node
+
+        if (map[goal[1]][goal[0]]):
+            print("Goal isn't valid, aborting")
+            return []
 
         least_cost = 1e4
         least_cost_coord = None
@@ -120,7 +126,8 @@ class PathPlanner:
                     least_cost_coord = neighbor
                     found_goal = True
 
-                coord_queue.append(neighbor)
+                if (not neighbor in coord_queue):
+                    coord_queue.append(neighbor)
 
             expanded[coord[1]][coord[0]] = True
 
@@ -130,6 +137,7 @@ class PathPlanner:
         print("Finished")
         print("Iterations: " + str(iterations))
         print("Found goal: " + str(found_goal))
+        print("Num rejected: " + str(numRejected))
 
         while True:
             path.append(coord_to_add)
@@ -144,7 +152,7 @@ class PathPlanner:
         for i in range(len(path)):
             print("\t" + str(path[i][0]) + ", " + str(path[i][1]))
 
-        return [binCoordToImageSpace(c) for c in path]
+        return [binCoordToImageSpace(c) for c in path], expanded
 
 class Node:
     def __init__(self, heuristic_cost):
