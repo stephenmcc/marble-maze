@@ -18,7 +18,7 @@ from math_utils import *
 RECORD = True
 positionLog = []
 
-PIXEL_TO_CM = 11.32
+PIXEL_PER_CM = 11.32
 
 GOAL = (30, 330)
 
@@ -112,10 +112,10 @@ class MarbleMazeSolver:
 
         if (RECORD):
             t = time.time() - self.start_time
-            x = self.marbleStateManager.x / PIXEL_TO_CM
-            y = self.marbleStateManager.y / PIXEL_TO_CM
-            sx = setpoint[0] / PIXEL_TO_CM
-            sy = setpoint[1] / PIXEL_TO_CM
+            x = self.marbleStateManager.x / PIXEL_PER_CM
+            y = self.marbleStateManager.y / PIXEL_PER_CM
+            sx = setpoint[0] / PIXEL_PER_CM
+            sy = setpoint[1] / PIXEL_PER_CM
             positionLog.append((t, x, y, sx, sy))
 
         if (SHOW_FILTERED_IMAGE):

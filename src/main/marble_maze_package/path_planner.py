@@ -1,9 +1,10 @@
 from blob_detector import SimpleBlobDetector
 from math_utils import *
+import time
 
 MAX_ITERATIONS = 2000
 BIN_SIZE = 12
-HEURISTIC_WEIGHT = 5.0
+HEURISTIC_WEIGHT = 1.0
 
 # Eight-connected graph. First four are one unit away, next are sqrt 2 units away
 def getNeighbors(coord):
@@ -42,6 +43,8 @@ def binCoordToImageSpace(coordinate):
 
 class PathPlanner:
     def planPath(self, image, startImgCoords, goalImgCoords):
+        start_time = time.time()
+
         imageSizeX = len(image[0])
         imageSizeY = len(image)
 
@@ -129,8 +132,11 @@ class PathPlanner:
 
         path = []
         coord_to_add = least_cost_coord
+        end_time = time.time()
+        total_time = end_time - start_time
 
         print("Finished")
+        print("Time: " + str(total_time))
         print("Iterations: " + str(iterations))
         print("Found goal: " + str(found_goal))
         print("Num rejected: " + str(numRejected))

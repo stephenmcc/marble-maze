@@ -45,7 +45,9 @@ def save_current_image(file_name, capturer):
 
 def save_a_few_images(capturer, name_prefix, number_of_images):
     # for some reason the first few images are bad
+    print("Capturing at 0...")
     for i in range(40):
+        print(str(i))
         frame = capturer.getCroppedFrame()
 
     frames = []
@@ -59,18 +61,25 @@ def save_a_few_images(capturer, name_prefix, number_of_images):
         filename = os.path.join(dirname, '..\\..\\..\\resources\\' + name_prefix + str(i) + '.png')
         cv2.imwrite(filename, frames[i])
 
-def test_saved_images(detector, max_index):
-    for i in range(max_index):
-        image = cv2.imread("..\\..\\..\\resources\\TestGreenRS" + str(i) + ".png")
+def test_saved_images(detector, name, start_index, end_index):
+    for i in range(end_index):
+        if (i < start_index):
+            continue
+        image = cv2.imread("..\\..\\..\\resources\\" + name + str(i) + ".png")
         filtered_image, blob = detector.detectBlob0(image)
         print(str(blob[0]) + ", " + str(blob[1]))
-        mark_cell(filtered_image, blob[0], blob[1], RED)
+        # mark_cell(filtered_image, blob[0], blob[1], RED)
         cv2.imshow('image', filtered_image)
         cv2.waitKey(0)
 
-def test_specific_image(detector, image_name):
+def test_specific_image(detector, image_name, save_name):
     image = cv2.imread("..\\..\\..\\resources\\" + image_name + ".png")
     filtered_image, blob = detector.detectBlob0(image)
+    dirname = os.path.dirname(__file__)
+
+    filename = os.path.join(dirname, '..\\..\\..\\resources\\' + save_name + '.png')
+    cv2.imwrite(filename, filtered_image)
+
     cv2.imshow('image', filtered_image)
     cv2.waitKey(0)
 
@@ -276,24 +285,24 @@ if __name__ == "__main__":
     # capturer = WebcamCapturer()
     capturer = RealsenseCapturer()
 
-    # detector = SimpleBlobDetector.createBlueMarbleDetector()
-    detector = SimpleBlobDetector.createObstacleDetector()
+    detector = SimpleBlobDetector.createMarbleDetector()
+    # detector = SimpleBlobDetector.createObstacleDetector()
 
     # show cropped, unfiltered image
     # display_camera(capturer)
 
     # write current webcam image to file
-    image_name = "MazeParts3.png"
+    image_name = "Maze_Up.png"
     # save_current_image(image_name, capturer)
 
     # save N images
-    # save_a_few_images(capturer, 'TestBlueRS', 25)
+    # save_a_few_images(capturer, 'Test', 20)
 
     # run detector on saved image
-    # test_saved_images(detector, 20)
+    test_saved_images(detector, "Test", 3, 20)
 
     # run detector on specific image
-    # test_specific_image(detector, "MazeParts")
+    # test_specific_image(detector, "MazeAndMarble", "MarbleAndMaze_filt1")
 
     # show live filtered image
     # display_simple_detection_results()
@@ -308,4 +317,4 @@ if __name__ == "__main__":
     # go_to_setpoint(capturer)
 
     # test A* planner
-    planPath(detector, "MazeParts3")
+    # planPath(detector, "MazeParts3")
