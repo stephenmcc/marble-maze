@@ -5,11 +5,11 @@ import cv2
 IMG_WIDTH = 640
 IMG_HEIGHT = 480
 
-MIN_X = 233
-MAX_X = 578
+MIN_X = 240
+MAX_X = 575
 
-MIN_Y = 50
-MAX_Y = 389
+MIN_Y = 55
+MAX_Y = 383
 
 FRAME_RATE = 30
 

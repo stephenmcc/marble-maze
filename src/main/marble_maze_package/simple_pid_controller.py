@@ -2,7 +2,7 @@ from math_utils import *
 
 # PID gains
 KP = 0.65
-KD = 0.4
+KD = 0.3
 KI = 2.0
 
 # How positive motor motion maps to image coordinates

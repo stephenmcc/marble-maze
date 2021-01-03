@@ -9,12 +9,7 @@ from marble_state_manager import MarbleStateManager
 from realsense_capturer import RealsenseCapturer
 from math_utils import *
 from path_planner import *
-
-# Colors for marking graphs
-RED = (50, 50, 180)
-YELLOW = (0, 175, 205)
-GREEN = (50, 180, 40)
-GREY = (50, 50, 50)
+from gui_tools import *
 
 def display_camera(capturer):
     while(True):
@@ -66,28 +61,25 @@ def test_saved_images(detector, name, start_index, end_index):
         if (i < start_index):
             continue
         image = cv2.imread("..\\..\\..\\resources\\" + name + str(i) + ".png")
-        filtered_image, blob = detector.detectBlob0(image)
-        print(str(blob[0]) + ", " + str(blob[1]))
+
+        filtered_image = detector.applyFilter(image)
+
+        # filtered_image, blob = detector.initializeMarblePosition(image)
         # mark_cell(filtered_image, blob[0], blob[1], RED)
+
         cv2.imshow('image', filtered_image)
         cv2.waitKey(0)
 
 def test_specific_image(detector, image_name, save_name):
     image = cv2.imread("..\\..\\..\\resources\\" + image_name + ".png")
-    filtered_image, blob = detector.detectBlob0(image)
+    filtered_image = detector.applyFilter(image)
     dirname = os.path.dirname(__file__)
 
-    filename = os.path.join(dirname, '..\\..\\..\\resources\\' + save_name + '.png')
-    cv2.imwrite(filename, filtered_image)
+    # filename = os.path.join(dirname, '..\\..\\..\\resources\\' + save_name + '.png')
+    # cv2.imwrite(filename, filtered_image)
 
     cv2.imshow('image', filtered_image)
     cv2.waitKey(0)
-
-def mark_cell(image, blobX, blobY, color):
-    width = 3
-    for i in range(-width, width+1):
-        for j in range(-width, width+1):
-            image[int(blobY) + j, int(blobX) + i] = color
 
 def display_simple_detection_results():
     capturer = RealsenseCapturer()
@@ -96,8 +88,8 @@ def display_simple_detection_results():
     while(True):
         # Capture frame-by-frame
         frame = capturer.getCroppedFrame()
-        filtered_image, blob = detector.detectBlob0(frame)
-        mark_cell(filtered_image, blob[0], blob[1], RED)
+        filtered_image, blob = detector.computeAverageThreshold(frame)
+        mark_cell(filtered_image, blob[0], blob[1], RED, 3)
 
         cv2.imshow('frame', filtered_image)
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -129,13 +121,13 @@ def track_marble(capturer):
     while(True):
         frame = capturer.getCroppedFrame()
         if (detectedMarbleLastTick):
-            filtered_image, blob = detector.detectBlob1(frame, marbleStateManager)
+            filtered_image, blob = detector.computeMarblePosition(frame, marbleStateManager)
         else:
-            filtered_image, blob = detector.detectBlob0(frame)
+            filtered_image, blob = detector.computeAverageThreshold(frame)
 
         if (blob[0] != -1):
             marbleStateManager.new_state_detected(blob[0], blob[1])
-            mark_cell(filtered_image, marbleStateManager.x, marbleStateManager.y, RED)
+            mark_cell(filtered_image, marbleStateManager.x, marbleStateManager.y, RED, 3)
             detectedMarbleLastTick = True
             print(str(marbleStateManager.x) + ', ' + str(marbleStateManager.y))
         else:
@@ -196,17 +188,17 @@ def go_to_setpoint(capturer):
     while(True):
         frame = capturer.getCroppedFrame()
         if (detectedMarbleLastTick):
-            filtered_image, blob = detector.detectBlob1(frame, marbleStateManager)
+            filtered_image, blob = detector.computeMarblePosition(frame, marbleStateManager)
         else:
-            filtered_image, blob = detector.detectBlob0(frame)
+            filtered_image, blob = detector.computeAverageThreshold(frame)
 
         if (blob[0] != -1):
             if (detectedMarbleLastTick):
                 marbleStateManager.new_state_detected(blob[0], blob[1])
             else:
                 marbleStateManager.initialize(blob[0], blob[1])
-            mark_cell(filtered_image, marbleStateManager.x, marbleStateManager.y, RED)
-            mark_cell(filtered_image, setpointX, setpointY, GREEN)
+            mark_cell(filtered_image, marbleStateManager.x, marbleStateManager.y, RED, 6)
+            mark_cell(filtered_image, setpointX, setpointY, GREEN, 6)
             detectedMarbleLastTick = True
         else:
             detectedMarbleLastTick = False
@@ -251,14 +243,14 @@ def go_to_setpoint(capturer):
 
 def planPath(detector, image_name):
     image = cv2.imread("..\\..\\..\\resources\\" + image_name + ".png")
-    filtered_image, blob = detector.detectBlob0(image)
+    filtered_image = detector.applyFilter(image)
 
     planner = PathPlanner()
 
-    start = (330, 330)
-    goal = (30, 330)
+    start = (315, 315)
+    goal = (20, 315)
 
-    path, expanded = planner.planPath(filtered_image, start, goal)
+    path, expanded, found_goal = planner.planPath(filtered_image, start, goal)
 
     print("Got a path of length: " + str(len(path)))
 
@@ -266,13 +258,11 @@ def planPath(detector, image_name):
     #     for j in range(len(expanded)):
     #         if (expanded[j][i]):
     #             imgCoord = binCoordToImageSpace((i, j))
-    #             mark_cell(filtered_image, imgCoord[0], imgCoord[1], GREY)
+    #             mark_cell(filtered_image, imgCoord[0], imgCoord[1], GREY, 3)
 
-    for i in range(len(path)):
-        mark_cell(filtered_image, path[i][0], path[i][1], YELLOW)
-
-    mark_cell(filtered_image, start[0], start[1], GREEN)
-    mark_cell(filtered_image, goal[0], goal[1], RED)
+    mark_path(path, filtered_image)
+    mark_cell(filtered_image, start[0], start[1], GREEN, 3)
+    mark_cell(filtered_image, goal[0], goal[1], RED, 3)
 
     dirname = os.path.dirname(__file__)
     filename = os.path.join(dirname, '..\\..\\..\\resources\\planner_result.png')
@@ -285,24 +275,24 @@ if __name__ == "__main__":
     # capturer = WebcamCapturer()
     capturer = RealsenseCapturer()
 
-    detector = SimpleBlobDetector.createMarbleDetector()
-    # detector = SimpleBlobDetector.createObstacleDetector()
+    # detector = SimpleBlobDetector.createMarbleDetector()
+    detector = SimpleBlobDetector.createObstacleDetector()
 
     # show cropped, unfiltered image
     # display_camera(capturer)
 
     # write current webcam image to file
-    image_name = "Maze_Up.png"
+    image_name = "Tmp.png"
     # save_current_image(image_name, capturer)
 
     # save N images
     # save_a_few_images(capturer, 'Test', 20)
 
     # run detector on saved image
-    test_saved_images(detector, "Test", 3, 20)
+    # test_saved_images(detector, "Test", 3, 20)
 
     # run detector on specific image
-    # test_specific_image(detector, "MazeAndMarble", "MarbleAndMaze_filt1")
+    # test_specific_image(detector, "Tmp", "Tmp_filt")
 
     # show live filtered image
     # display_simple_detection_results()
@@ -317,4 +307,4 @@ if __name__ == "__main__":
     # go_to_setpoint(capturer)
 
     # test A* planner
-    # planPath(detector, "MazeParts3")
+    planPath(detector, "Tmp")

@@ -43,7 +43,7 @@ def mark_goal_position(image, blobX, blobY):
         for j in range(-width, width+1):
             image[int(blobY) + j, int(blobX) + i] = (50, 180, 40)
 
-class MarbleMazeSolver:
+class AutonomousNavigation:
     detected_marble_last_tick = False
 
     # Has a double click happened
@@ -91,9 +91,9 @@ class MarbleMazeSolver:
 
         frame = self.capturer.getCroppedFrame()
         if (self.detected_marble_last_tick):
-            filtered_image, blob = self.detector.detectBlob1(frame, self.marbleStateManager)
+            filtered_image, blob = self.detector.computeMarblePosition(frame, self.marbleStateManager)
         else:
-            filtered_image, blob = self.detector.detectBlob0(frame)
+            filtered_image, blob = self.detector.initializeMarblePosition(frame)
 
         if (blob[0] != -1):
             if (self.detected_marble_last_tick):
@@ -189,5 +189,5 @@ if __name__ == "__main__":
     # setpointManager = UserGuidedSetpoint(marbleStateManager)
     setpointManager = PathBasedSetpoint(marbleStateManager)
 
-    solver = MarbleMazeSolver(marbleStateManager, setpointManager)
+    solver = AutonomousNavigation(marbleStateManager, setpointManager)
     run_solver(solver)

@@ -21,6 +21,13 @@ def signum(val):
     else:
         return -1.0
 
+def clamp0(val, min, max):
+    if (val > max):
+        return max
+    elif (val < min):
+        return min
+    return val
+
 def clamp(val, min_max):
     if (val > min_max):
         return min_max

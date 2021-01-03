@@ -5,6 +5,7 @@ import time
 MAX_ITERATIONS = 2000
 BIN_SIZE = 12
 HEURISTIC_WEIGHT = 1.0
+OCCUPANCY_THRESHOLD = 5
 
 # Eight-connected graph. First four are one unit away, next are sqrt 2 units away
 def getNeighbors(coord):
@@ -33,8 +34,8 @@ def updateCosts(graph, coordinate):
             child_node.setCostFromStart(node.getCostFromStart() + distance2D(coordinate, child_coord))
             updateCosts(graph, child_coord)
 
-def toBinCoord(imgCoord):
-    return int(imgCoord / BIN_SIZE)
+def toBinCoord(imgCoord, maxVal):
+    return clamp0(int(imgCoord / BIN_SIZE), 0, maxVal - 1)
 
 def binCoordToImageSpace(coordinate):
     x = coordinate[0] * BIN_SIZE + 0.5 * BIN_SIZE
@@ -48,21 +49,36 @@ class PathPlanner:
         imageSizeX = len(image[0])
         imageSizeY = len(image)
 
-        binSizeX = toBinCoord(imageSizeX - 1)
-        binSizeY = toBinCoord(imageSizeY - 1)
+        # round down on edges
+        binSizeX = int((imageSizeX - 1) / BIN_SIZE)
+        binSizeY = int((imageSizeY - 1) / BIN_SIZE)
 
-        map = [[False for xi in range(binSizeX)] for yi in range(binSizeY)]
+        occupancy_count = [[0 for xi in range(binSizeX)] for yi in range(binSizeY)]
         graph = [[None for xi in range(binSizeX)] for yi in range(binSizeY)]
         expanded = [[False for xi in range(binSizeX)] for yi in range(binSizeY)]
+
+        print("Image size x = " + str(imageSizeX))
+        print("Image size y = " + str(imageSizeY))
+        print("Bin size x = " + str(binSizeX))
+        print("Bin size y = " + str(binSizeY))
 
         for y in range(imageSizeY):
             for x in range(imageSizeX):
                 pixel = image[y][x]
                 if (int(pixel[0]) + int(pixel[1]) + int(pixel[2]) != 0):
-                    map[toBinCoord(y)][toBinCoord(x)] = True
+                    bx = toBinCoord(x, binSizeX)
+                    by = toBinCoord(y, binSizeY)
+                    c = occupancy_count[by][bx]
+                    occupancy_count[by][bx] = c + 1
 
-        start = (toBinCoord(startImgCoords[0]), toBinCoord(startImgCoords[1]))
-        goal = (toBinCoord(goalImgCoords[0]), toBinCoord(goalImgCoords[1]))
+        map = [[False for xi in range(binSizeX)] for yi in range(binSizeY)]
+        for y in range(binSizeY):
+            for x in range(binSizeX):
+                occupied = occupancy_count[y][x] >= OCCUPANCY_THRESHOLD
+                map[y][x] = occupied
+
+        start = (toBinCoord(startImgCoords[0], binSizeX), toBinCoord(startImgCoords[1], binSizeY))
+        goal = (toBinCoord(goalImgCoords[0], binSizeX), toBinCoord(goalImgCoords[1], binSizeY))
         start_node = Node(HEURISTIC_WEIGHT * distance2D(start, goal))
 
         print("Start: " + str(start[0]) + ", " + str(start[1]))
@@ -154,7 +170,7 @@ class PathPlanner:
         for i in range(len(path)):
             print("\t" + str(path[i][0]) + ", " + str(path[i][1]))
 
-        return [binCoordToImageSpace(c) for c in path], expanded
+        return [binCoordToImageSpace(c) for c in path], expanded, found_goal
 
 class Node:
     def __init__(self, heuristic_cost):

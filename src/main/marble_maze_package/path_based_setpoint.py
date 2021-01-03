@@ -11,10 +11,10 @@ class PathBasedSetpoint:
 
     def on_start(self, goal, frame):
         self.goal = goal
-        filtered_image, blob = self.obstacleDetector.detectBlob0(frame)
+        filtered_image = self.obstacleDetector.applyFilter(frame)
 
         planner = PathPlanner()
-        self.path, expanded = planner.planPath(filtered_image, self.marbleStateManager.get_position(), goal)
+        self.path, expanded, found_goal = planner.planPath(filtered_image, self.marbleStateManager.get_position(), goal)
         print("Got a path of length: " + str(len(self.path)))
 
     def get_setpoint(self):
